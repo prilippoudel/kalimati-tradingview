@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalimati TradingView — Akabrey & Lemon Candlestick Charting Terminal</title>
+  <meta name="description" content="Professional TradingView-style candlestick and technical analysis terminal pulling real-time and historical wholesale price data from Kalimati Fruit and Vegetable Market.">
+  <link rel="stylesheet" href="/css/style.css">
+  <!-- Lightweight Charts v5 standalone -->
+  <script src="/js/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <div id="trading-workstation">
+    <!-- Top Header Bar -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="brand-badge">
+          <div class="brand-logo-icon">📈</div>
+          <div class="brand-text-wrap">
+            <span class="brand-title">KALIMATI PRO</span>
+            <span class="brand-subtitle">WHOLESALE TERMINAL</span>
+          </div>
+        </div>
+
+        <!-- Featured Symbol Switchers: Akabrey & Lemon -->
+        <div class="symbol-selector-container">
+          <div class="symbol-chips-group">
+            <button class="symbol-chip active" data-id="303.4" id="chip-akabare" title="Chilli Green (Akbare) / खुर्सानी हरियो(अकबरे)">
+              🌶️ Akabrey
+            </button>
+            <button class="symbol-chip" data-id="203" id="chip-lemon" title="Lemon (Lime) / कागती">
+              🍋 Lemon
+            </button>
+          </div>
+
+          <!-- 150+ Kalimati Commodities Select Dropdown -->
+          <div class="symbol-dropdown-wrap">
+            <select id="symbol-select" class="symbol-select-styled" title="Select any Kalimati Commodity">
+              <option value="303.4">🌶️ Akabrey (Chilli)</option>
+              <option value="203">🍋 Lemon (Lime)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Header Center: Real-time Ticker HUD -->
+      <div class="header-middle">
+        <div class="live-ticker-wrap">
+          <span class="ticker-title" id="header-title">Akabare Round Chilli</span>
+          <span class="ticker-nepali" id="header-nepali-title">Wholesale Rate • Per Kg</span>
+          <span class="ticker-price" id="header-price">NPR --</span>
+          <span class="ticker-change" id="header-change">--</span>
+        </div>
+        <div class="nepali-date-pill" id="nepali-date-badge">📅 Loading...</div>
+      </div>
+
+      <!-- Header Right: System Status & Tools -->
+      <div class="header-right">
+        <div class="header-status-indicator">
+          <div class="status-dot"></div>
+          <span>Kalimati Live</span>
+        </div>
+
+        <button class="icon-btn" id="refresh-btn" title="Force Sync Fresh Kalimati Data">🔄</button>
+        <button class="icon-btn" id="screenshot-btn" title="Export PNG Chart Screenshot">📷</button>
+        <button class="icon-btn" id="fullscreen-btn" title="Toggle Fullscreen">⛶</button>
+      </div>
+    </header>
+
+    <!-- Secondary Nav / Timeframes & Indicators Bar -->
+    <nav class="app-subbar">
+      <div class="subbar-left">
+        <!-- Timeframe selector -->
+        <div class="timeframe-group">
+          <button class="tf-btn active" data-tf="1D">1D</button>
+          <button class="tf-btn" data-tf="1W">1W</button>
+          <button class="tf-btn" data-tf="1M">1M</button>
+        </div>
+
+        <div class="divider-vert"></div>
+
+        <!-- Chart Type Selector -->
+        <div class="chart-type-selector">
+          <select id="chart-type-select" title="Chart Display Style">
+            <option value="candles">🕯️ Candlesticks</option>
+            <option value="heikin-ashi">📊 Heikin-Ashi</option>
+            <option value="area">📈 Area Chart</option>
+            <option value="line">📉 Line Chart</option>
+            <option value="bars">📶 OHLC Bars</option>
+          </select>
+        </div>
+
+        <div class="divider-vert"></div>
+
+        <!-- Indicators Toggle Group -->
+        <div class="indicators-dropdown-menu">
+          <label class="ind-label" title="Market Activity & Volatility Index">
+            <input type="checkbox" class="ind-checkbox" data-ind="vol" checked> Activity Index
+          </label>
+          <label class="ind-label" title="Simple Moving Average 20">
+            <input type="checkbox" class="ind-checkbox" data-ind="sma20"> SMA 20
+          </label>
+          <label class="ind-label" title="Simple Moving Average 50">
+            <input type="checkbox" class="ind-checkbox" data-ind="sma50"> SMA 50
+          </label>
+          <label class="ind-label" title="Exponential Moving Average 9">
+            <input type="checkbox" class="ind-checkbox" data-ind="ema9"> EMA 9
+          </label>
+          <label class="ind-label" title="Bollinger Bands (20, 2)">
+            <input type="checkbox" class="ind-checkbox" data-ind="bb"> BB (20,2)
+          </label>
+          <label class="ind-label" title="Relative Strength Index">
+            <input type="checkbox" class="ind-checkbox" data-ind="rsi"> RSI (14)
+          </label>
+          <label class="ind-label" title="Moving Average Convergence Divergence">
+            <input type="checkbox" class="ind-checkbox" data-ind="macd"> MACD
+          </label>
+        </div>
+
+        <div class="divider-vert"></div>
+
+        <!-- Comparison overlay toggle -->
+        <button class="btn-compare" id="compare-toggle-btn" title="Overlay Akabrey & Lemon together">
+          ⚖️ Compare (Akabrey / Lemon)
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Workspace -->
+    <main class="main-workspace">
+      <!-- Left Drawing & Measurement Tools -->
+      <aside class="left-toolbar">
+        <button class="tool-btn active" data-tool="cursor" title="Crosshair Cursor">➕</button>
+        <button class="tool-btn" data-tool="trendline" title="Draw Trendline">📏</button>
+        <button class="tool-btn" data-tool="horzline" title="Draw Horizontal Price Support/Resistance">➖</button>
+        <button class="tool-btn" data-tool="clear" title="Clear All Drawings">🗑️</button>
+      </aside>
+
+      <!-- Center Chart Stage -->
+      <section class="center-chart-stage">
+        <!-- Floating HUD Legend -->
+        <div class="chart-hud-legend" id="chart-hud">
+          <div class="hud-item">O: <span class="hud-val" id="hud-open">--</span></div>
+          <div class="hud-item">H: <span class="hud-val" id="hud-high">--</span></div>
+          <div class="hud-item">L: <span class="hud-val" id="hud-low">--</span></div>
+          <div class="hud-item">C: <span class="hud-val" id="hud-close">--</span></div>
+          <div class="hud-item">Chg: <span class="hud-change" id="hud-change">--</span></div>
+          <div class="hud-item" title="Market Activity & Volatility Index">Act: <span class="hud-val" id="hud-vol">--</span></div>
+          <div class="hud-item">Date: <span class="hud-val" id="hud-date">--</span></div>
+        </div>
+
+        <!-- Primary Price Chart Canvas Wrapper -->
+        <div class="main-chart-wrapper">
+          <div id="main-chart-canvas"></div>
+          <canvas id="drawing-canvas"></canvas>
+        </div>
+
+        <!-- Oscillator Sub-chart Canvas Wrapper (RSI / MACD) -->
+        <div class="sub-chart-wrapper" id="sub-chart-panel">
+          <div id="sub-chart-canvas"></div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="chart-loading-overlay" id="chart-loading" style="display: none;">
+          <div class="spinner"></div>
+          <span>Pulling Real-time Kalimati Data...</span>
+        </div>
+      </section>
+
+      <!-- Right Sidebar: Watchlist & Market Deep Dive -->
+      <aside class="right-sidebar">
+        <!-- Watchlist Section -->
+        <div class="sidebar-section">
+          <div class="section-header">
+            <span class="section-title">Market Watchlist</span>
+            <span style="font-size: 11px; color: var(--text-muted);">NPR / Kg</span>
+          </div>
+          <div class="watchlist-container" id="watchlist-items">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Today's Official Wholesale Board -->
+        <div class="sidebar-section">
+          <div class="section-header">
+            <span class="section-title">Today's Wholesale Board</span>
+          </div>
+          <div class="today-board-card">
+            <div class="board-card-header">
+              <span>Official Kalimati Daily Rates</span>
+              <span id="stat-unit">Kg</span>
+            </div>
+            <div class="board-triplet">
+              <div class="board-col">
+                <span class="board-col-label">Min Price</span>
+                <span class="board-col-val" id="stat-today-min">--</span>
+              </div>
+              <div class="board-col">
+                <span class="board-col-label">Max Price</span>
+                <span class="board-col-val" id="stat-today-max">--</span>
+              </div>
+              <div class="board-col">
+                <span class="board-col-label">Avg Price</span>
+                <span class="board-col-val" id="stat-today-avg">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Technical Sentiment & Trend Bias -->
+        <div class="sidebar-section">
+          <div class="section-header">
+            <span class="section-title">Market Sentiment</span>
+          </div>
+          <div class="sentiment-card">
+            <span style="font-size: 12px; color: var(--text-secondary);">Current Momentum:</span>
+            <span class="bias-badge bias-neutral" id="market-bias-badge">NEUTRAL ⚖️</span>
+          </div>
+        </div>
+
+        <!-- Statistical Range & Volatility -->
+        <div class="sidebar-section">
+          <div class="section-header">
+            <span class="section-title">Key Statistics</span>
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-label">52W High</span>
+              <span class="stat-value" id="stat-high52">--</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">52W Low</span>
+              <span class="stat-value" id="stat-low52">--</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">All-Time High</span>
+              <span class="stat-value" id="stat-ath">--</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">All-Time Low</span>
+              <span class="stat-value" id="stat-atl">--</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">30D Volatility</span>
+              <span class="stat-value" id="stat-volatility">--</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Trading Days</span>
+              <span class="stat-value" id="stat-days">--</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/js/indicators.js"></script>
+  <script src="/js/chart.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
