@@ -376,6 +376,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
+  // News Pins On-Chart Toggle (Clean by default)
+  const newsPinsToggle = document.getElementById('toggle-news-pins');
+  if (newsPinsToggle) {
+    newsPinsToggle.addEventListener('change', (e) => {
+      chartInstance.toggleEventMarkers(e.target.checked);
+    });
+  }
+
   // Compare Mode Toggle
   const compareToggle = document.getElementById('compare-toggle-btn');
   if (compareToggle) {

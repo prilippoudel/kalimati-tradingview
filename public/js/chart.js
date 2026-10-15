@@ -26,7 +26,7 @@ class KalimatiChart {
     this.isComparing = false;
     this.compareData = null;
     this.events = [];
-    this.showEventMarkers = true;
+    this.showEventMarkers = false; // Default off to keep chart clean
 
     // Data cache
     this.currentCandles = [];
@@ -272,10 +272,22 @@ class KalimatiChart {
   }
 
   renderEventMarkers() {
-    if (!this.primarySeries || !this.showEventMarkers || !this.events || this.events.length === 0) return;
+    if (!this.primarySeries) return;
     
-    // Convert events into TradingView series markers
-    const markers = this.events.slice(-40).map(e => {
+    // If toggled off or no events, clear existing markers
+    if (!this.showEventMarkers || !this.events || this.events.length === 0) {
+      if (this.seriesMarkers && typeof this.seriesMarkers.setMarkers === 'function') {
+        this.seriesMarkers.setMarkers([]);
+      }
+      return;
+    }
+    
+    // Minimalist filtering: Only place pins on days that have verified news articles or major macro spikes (>= 30%)
+    const significantEvents = this.events.filter(e => 
+      (e.newsArticles && e.newsArticles.length > 0) || Math.abs(e.changePct) >= 30
+    );
+
+    const markers = significantEvents.slice(-15).map(e => {
       const isUp = e.direction === 'up';
       const hasNews = e.newsArticles && e.newsArticles.length > 0;
       return {
@@ -283,12 +295,11 @@ class KalimatiChart {
         position: isUp ? 'aboveBar' : 'belowBar',
         color: isUp ? '#ff9800' : '#00e5ff',
         shape: isUp ? 'arrowUp' : 'arrowDown',
-        text: `${isUp ? '▲' : '▼'}${Math.abs(e.changePct)}%${hasNews ? ' 📰' : ''}`,
-        size: hasNews ? 2 : 1
+        text: hasNews ? '📰' : (isUp ? '▲' : '▼'),
+        size: 1
       };
     });
 
-    // Markers must be sorted strictly by time
     markers.sort((a, b) => a.time.localeCompare(b.time));
 
     try {
@@ -302,6 +313,11 @@ class KalimatiChart {
     } catch (err) {
       console.warn('Could not set series markers:', err.message);
     }
+  }
+
+  toggleEventMarkers(show) {
+    this.showEventMarkers = show;
+    this.renderEventMarkers();
   }
 
   zoomToDate(targetDate) {
