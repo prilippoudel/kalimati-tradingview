@@ -61,6 +61,10 @@
           <span>Kalimati Live</span>
         </div>
 
+        <button class="btn-news-toggle" id="news-drawer-btn" title="View Market News & Price Anomalies">
+          📰 News & Anomalies <span class="news-counter" id="news-counter">--</span>
+        </button>
+
         <button class="icon-btn" id="refresh-btn" title="Force Sync Fresh Kalimati Data">🔄</button>
         <button class="icon-btn" id="screenshot-btn" title="Export PNG Chart Screenshot">📷</button>
         <button class="icon-btn" id="fullscreen-btn" title="Toggle Fullscreen">⛶</button>
@@ -253,6 +257,30 @@
       </aside>
     </main>
   </div>
+
+  <!-- Slide-out News & Trend Events Drawer -->
+  <aside class="news-drawer" id="news-drawer">
+    <div class="news-drawer-header">
+      <div class="drawer-title-group">
+        <h3>📰 Market News & Anomaly Feed</h3>
+        <span class="drawer-subtitle">Verified Nepal agricultural news & correlated price spikes</span>
+      </div>
+      <button class="drawer-close-btn" id="news-drawer-close">✕</button>
+    </div>
+
+    <div class="news-drawer-tabs">
+      <button class="drawer-tab active" data-tab="events">📌 Price Events (<span id="tab-events-count">0</span>)</button>
+      <button class="drawer-tab" data-tab="feed">📡 Live News Feed (<span id="tab-news-count">0</span>)</button>
+    </div>
+
+    <div class="drawer-content-pane" id="drawer-events-pane">
+      <!-- Dynamically populated event cards -->
+    </div>
+
+    <div class="drawer-content-pane" id="drawer-feed-pane" style="display: none;">
+      <!-- Dynamically populated live news feed -->
+    </div>
+  </aside>
 
   <!-- Scripts -->
   <script src="/js/indicators.js"></script>

@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const newsService = require('./newsService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -362,16 +363,51 @@ app.get('/api/history/:id', async (req, res) => {
       english: raw.commodity
     };
 
+    // Calculate anomalies and correlate with news
+    let events = [];
+    try {
+      const articles = await newsService.fetchAgriculturalNews();
+      const anomalies = newsService.detectPriceAnomalies(candles, commodityId, info.english);
+      events = newsService.correlateAnomaliesWithNews(anomalies, articles);
+    } catch (e) {
+      console.warn('Error calculating events:', e.message);
+    }
+
     res.json({
       status: 'success',
       commodity: info,
       timeframe,
       stats,
       englishDate: today.englishDate,
+      events,
       candles
     });
   } catch (err) {
     console.error('API Error /api/history:', err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+app.get('/api/news', async (req, res) => {
+  try {
+    const articles = await newsService.fetchAgriculturalNews();
+    res.json({ status: 'success', articles });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
+app.get('/api/events/:id', async (req, res) => {
+  try {
+    const commodityId = req.params.id;
+    const raw = await fetchCommodityHistory(commodityId);
+    const candles = buildCandles(raw, '1D');
+    const articles = await newsService.fetchAgriculturalNews();
+    const info = commoditiesList.find(c => c.id === commodityId) || { id: commodityId, english: 'Commodity' };
+    const anomalies = newsService.detectPriceAnomalies(candles, commodityId, info.english);
+    const events = newsService.correlateAnomaliesWithNews(anomalies, articles);
+    res.json({ status: 'success', events });
+  } catch (err) {
     res.status(500).json({ status: 'error', message: err.message });
   }
 });
@@ -405,14 +441,16 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Recurring background auto-sync: checks Kalimati every 30 minutes for new daily market prices
+// Recurring background auto-sync: checks Kalimati and news every 30 minutes
 setInterval(async () => {
   try {
     const todayStr = new Date().toISOString().slice(0, 10);
-    console.log(`[Auto-Sync ${todayStr}] Checking Kalimati Market for fresh daily prices...`);
+    console.log(`[Auto-Sync ${todayStr}] Checking Kalimati Market & News for fresh updates...`);
     await fetchCommodityHistory('303.4', '2022-01-01', todayStr);
     await fetchCommodityHistory('203', '2022-01-01', todayStr);
     await fetchTodayPrices();
+    await newsService.fetchAgriculturalNews();
+    console.log(`[Auto-Sync ${todayStr}] Auto-sync successfully completed.`);
   } catch (err) {
     console.warn('[Auto-Sync] Warning:', err.message);
   }

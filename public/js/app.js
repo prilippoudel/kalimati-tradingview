@@ -236,8 +236,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       const data = await res.json();
       currentData = data;
 
-      // Update Chart
-      chartInstance.setData(data.commodity, data.candles, timeframe);
+      // Update Chart with Candles and News Events
+      chartInstance.setData(data.commodity, data.candles, timeframe, data.events || []);
       resizeDrawingCanvas();
 
       // Update Header Ticker HUD
@@ -245,6 +245,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       // Update Market Stats Sidebar
       updateMarketStats(data);
+
+      // Update News & Events Drawer
+      populateNewsDrawer(data.events || []);
 
       // If comparing Akabrey & Lemon, fetch the counterpart
       if (isComparing) {
@@ -440,6 +443,122 @@ document.addEventListener('DOMContentLoaded', async () => {
   const fullscreenBtn = document.getElementById('fullscreen-btn');
   if (fullscreenBtn) {
     fullscreenBtn.addEventListener('click', () => chartInstance.toggleFullscreen());
+  }
+
+  // News Drawer Toggle & Tabs
+  const newsDrawer = document.getElementById('news-drawer');
+  const newsDrawerBtn = document.getElementById('news-drawer-btn');
+  const newsDrawerClose = document.getElementById('news-drawer-close');
+
+  if (newsDrawerBtn && newsDrawer) {
+    newsDrawerBtn.addEventListener('click', () => {
+      newsDrawer.classList.toggle('open');
+    });
+  }
+
+  if (newsDrawerClose && newsDrawer) {
+    newsDrawerClose.addEventListener('click', () => {
+      newsDrawer.classList.remove('open');
+    });
+  }
+
+  // Drawer Tabs switching
+  document.querySelectorAll('.drawer-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.drawer-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      const isEvents = tab.dataset.tab === 'events';
+      document.getElementById('drawer-events-pane').style.display = isEvents ? 'flex' : 'none';
+      document.getElementById('drawer-feed-pane').style.display = isEvents ? 'none' : 'flex';
+    });
+  });
+
+  // Populate News Drawer
+  async function populateNewsDrawer(events) {
+    const eventsPane = document.getElementById('drawer-events-pane');
+    const feedPane = document.getElementById('drawer-feed-pane');
+    const counterEl = document.getElementById('news-counter');
+    const tabEventsCount = document.getElementById('tab-events-count');
+    const tabNewsCount = document.getElementById('tab-news-count');
+
+    // 1. Populate Events Pane
+    if (eventsPane) {
+      eventsPane.innerHTML = '';
+      const recentEvents = events.slice(-40).reverse(); // Latest first
+
+      if (counterEl) counterEl.textContent = recentEvents.length;
+      if (tabEventsCount) tabEventsCount.textContent = recentEvents.length;
+
+      for (const ev of recentEvents) {
+        const card = document.createElement('div');
+        card.className = 'event-card';
+        const isUp = ev.direction === 'up';
+
+        let newsHtml = '';
+        if (ev.newsArticles && ev.newsArticles.length > 0) {
+          const topNews = ev.newsArticles[0];
+          newsHtml = `
+            <a href="${topNews.link}" target="_blank" class="event-news-link" title="Read verified news source" onclick="event.stopPropagation()">
+              🔗 ${topNews.source}: ${topNews.title} ↗
+            </a>
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="event-card-top">
+            <span class="event-badge ${ev.direction}">${isUp ? '▲ SURGE' : '▼ PLUNGE'} ${Math.abs(ev.changePct)}%</span>
+            <span class="event-date">📅 ${ev.time}</span>
+          </div>
+          <div class="event-cause">${ev.primaryCause}</div>
+          <div class="event-price-trail">
+            <span>Previous: NPR ${ev.prevPrice}</span>
+            <span>➔</span>
+            <span style="color: ${isUp ? '#089981' : '#f23645'}; font-weight: 700;">Close: NPR ${ev.price}</span>
+          </div>
+          ${newsHtml}
+        `;
+
+        // Click to zoom chart to that exact date
+        card.addEventListener('click', () => {
+          chartInstance.zoomToDate(ev.time);
+          card.style.borderColor = '#00e5ff';
+          setTimeout(() => card.style.borderColor = '', 1000);
+        });
+
+        eventsPane.appendChild(card);
+      }
+    }
+
+    // 2. Fetch and Populate Live News Feed Pane
+    try {
+      const res = await fetch('/api/news');
+      const data = await res.json();
+      const articles = data.articles || [];
+
+      if (tabNewsCount) tabNewsCount.textContent = articles.length;
+
+      if (feedPane) {
+        feedPane.innerHTML = '';
+        for (const art of articles) {
+          const card = document.createElement('a');
+          card.href = art.link;
+          card.target = '_blank';
+          card.className = 'feed-card';
+
+          card.innerHTML = `
+            <div class="feed-title">${art.title}</div>
+            <div class="feed-meta">
+              <span class="feed-source">${art.source}</span>
+              <span>${art.date}</span>
+            </div>
+          `;
+          feedPane.appendChild(card);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load news feed:', e);
+    }
   }
 
   // Initial load

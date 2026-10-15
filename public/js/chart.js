@@ -25,6 +25,8 @@ class KalimatiChart {
     this.activeOscillator = 'none'; // 'none', 'rsi', 'macd'
     this.isComparing = false;
     this.compareData = null;
+    this.events = [];
+    this.showEventMarkers = true;
 
     // Data cache
     this.currentCandles = [];
@@ -147,10 +149,11 @@ class KalimatiChart {
     this.render();
   }
 
-  setData(commodity, candles, timeframe = '1D') {
+  setData(commodity, candles, timeframe = '1D', events = []) {
     this.rawCommodity = commodity;
     this.currentCandles = candles;
     this.currentTimeframe = timeframe;
+    this.events = events || [];
     this.render();
     this.chart.timeScale().fitContent();
     this.subChart.timeScale().fitContent();
@@ -198,6 +201,7 @@ class KalimatiChart {
     if (this.primarySeries) {
       try { this.chart.removeSeries(this.primarySeries); } catch (e) {}
       this.primarySeries = null;
+      this.seriesMarkers = null;
     }
 
     // 2. Create new primary series according to chartType
@@ -258,10 +262,54 @@ class KalimatiChart {
       this.renderCompareSeries();
     }
 
-    // 6. Update HUD with latest candle
+    // 6. Render Price Spike / News Event Markers
+    this.renderEventMarkers();
+
+    // 7. Update HUD with latest candle
     const last = this.currentCandles[this.currentCandles.length - 1];
     const prev = this.currentCandles.length > 1 ? this.currentCandles[this.currentCandles.length - 2] : last;
     this.updateLegend(last, prev);
+  }
+
+  renderEventMarkers() {
+    if (!this.primarySeries || !this.showEventMarkers || !this.events || this.events.length === 0) return;
+    
+    // Convert events into TradingView series markers
+    const markers = this.events.slice(-40).map(e => {
+      const isUp = e.direction === 'up';
+      const hasNews = e.newsArticles && e.newsArticles.length > 0;
+      return {
+        time: e.time,
+        position: isUp ? 'aboveBar' : 'belowBar',
+        color: isUp ? '#ff9800' : '#00e5ff',
+        shape: isUp ? 'arrowUp' : 'arrowDown',
+        text: `${isUp ? '▲' : '▼'}${Math.abs(e.changePct)}%${hasNews ? ' 📰' : ''}`,
+        size: hasNews ? 2 : 1
+      };
+    });
+
+    // Markers must be sorted strictly by time
+    markers.sort((a, b) => a.time.localeCompare(b.time));
+
+    try {
+      if (this.seriesMarkers && typeof this.seriesMarkers.setMarkers === 'function') {
+        this.seriesMarkers.setMarkers(markers);
+      } else if (typeof LightweightCharts.createSeriesMarkers === 'function') {
+        this.seriesMarkers = LightweightCharts.createSeriesMarkers(this.primarySeries, markers);
+      } else if (typeof this.primarySeries.setMarkers === 'function') {
+        this.primarySeries.setMarkers(markers);
+      }
+    } catch (err) {
+      console.warn('Could not set series markers:', err.message);
+    }
+  }
+
+  zoomToDate(targetDate) {
+    if (!this.chart || !targetDate) return;
+    const d = new Date(targetDate);
+    const fromDate = new Date(d.getTime() - 25 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const toDate = new Date(d.getTime() + 20 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    this.chart.timeScale().setVisibleRange({ from: fromDate, to: toDate });
   }
 
   renderVolume() {
